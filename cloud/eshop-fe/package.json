@@ -1,0 +1,25 @@
+{
+  "name": "eshop-fe",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5050"
+  },
+  "dependencies": {
+    "@formkit/i18n": "^1.0.0-beta.6",
+    "@formkit/vue": "^1.0.0-beta.6",
+    "@quasar/extras": "^1.13.5",
+    "pinia": "^2.0.13",
+    "pinia-plugin-persistedstate": "^1.5.1",
+    "quasar": "^2.6.6",
+    "vue": "^3.2.31",
+    "vue-router": "^4.0.14"
+  },
+  "devDependencies": {
+    "@quasar/vite-plugin": "^1.0.9",
+    "@vitejs/plugin-vue": "^2.2.2",
+    "sass": "^1.32.0",
+    "vite": "^2.8.4"
+  }
+}
