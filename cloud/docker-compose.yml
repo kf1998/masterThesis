@@ -1,0 +1,183 @@
+version: "2.2"
+services:
+  frontend:
+    build:
+      context: ./eshop-fe
+    image: eshop-fe/pz2:latest
+    hostname: eshop-fe
+    ports:
+      - "3000:3000"
+    depends_on:
+      gateway-api:
+        condition: service_started
+    container_name: eshop-fe
+
+  userdb:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=userdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - userdb-volume:/var/lib/postgresql/data
+    container_name: userdb
+    networks:
+      - user_db_network
+
+  productdb:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=productdb
+    ports:
+      - "5434:5432"
+    volumes:
+      - productdb-volume:/var/lib/postgresql/data
+    container_name: productdb
+    networks:
+      - product_db_network
+
+  orderdb:
+    image: mongo
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongodb
+      - MONGO_INITDB_ROOT_PASSWORD=mongodb
+      - MONGO_INITDB_DATABASE=orderdb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh
+      - ./mongo-volume:/data/db
+    container_name: orderdb
+    networks:
+      - order_db_network
+
+  basketdb:
+    image: "redis:alpine"
+    restart: always
+    environment:
+      - REDIS_REPLICATION_MODE=master
+      #- REDIS_PASSWORD=redis
+      #- REDIS_USER=default
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass sOmE_sEcUrE_pAsS
+    volumes:
+      - $PWD/redis-data:/var/lib/redis
+      #- $PWD/redis.conf:/usr/local/etc/redis/redis.conf
+    container_name: basketdb
+    networks:
+      - basket_db_network
+  
+  basket-api:
+    build:
+      context: ./basket-api
+    image: basket-api/pz2:latest
+    restart: always
+    hostname: basket-api
+    ports:
+    - "8084:8084"
+    networks:
+      - basket_db_network
+      - basket_api_network
+    depends_on:
+      basketdb:
+        condition: service_started
+    container_name: basket-api
+
+  order-api:
+    build:
+      context: ./order-api
+    image: order-api/pz2:latest
+    restart: always
+    hostname: order-api
+    ports:
+    - "8083:8083"
+    environment:
+    - MONGODB_URI=mongodb://mongodb
+    networks:
+      - order_db_network
+      - order_api_network
+    depends_on:
+      orderdb:
+        condition: service_started
+    container_name: order-api
+
+  product-api:
+    build:
+      context: ./product-api
+    image: product-api/pz2:latest
+    restart: always
+    hostname: product-api
+    ports:
+    - "8082:8082"
+    networks:
+      - product_db_network
+      - product_api_network
+    depends_on:
+      productdb:
+        condition: service_started
+    container_name: product-api
+
+  user-api:
+    build:
+      context: ./user-api
+    image: user-api/pz2:latest
+    restart: always
+    hostname: user-api
+    ports:
+    - "8081:8081"
+    networks:
+      - user_db_network
+      - user_api_network
+    depends_on:
+      userdb:
+        condition: service_started
+    container_name: user-api
+
+  gateway-api:
+    build:
+      context: ./gateway-api
+    image: gateway-api/pz2:latest
+    restart: always
+    hostname: gateway-api
+    ports:
+    - "8085:8085"
+    networks:
+      - basket_api_network
+      - order_api_network
+      - product_api_network
+      - user_api_network
+    depends_on:
+      basket-api:
+        condition: service_started
+      order-api:
+        condition: service_started
+      product-api:
+        condition: service_started
+      user-api:
+        condition: service_started
+    container_name: gateway-api
+
+volumes:
+  basketdb-volume:
+  orderdb-volume:
+  productdb-volume:
+  userdb-volume:
+
+networks:
+  basket_db_network:
+  basket_api_network:
+  order_db_network:
+  order_api_network:
+  product_db_network:
+  product_api_network:
+  user_db_network:
+  user_api_network:
+    driver: bridge
